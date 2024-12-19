@@ -1,0 +1,37 @@
+<div class="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded-lg">
+    <h1 class="text-2xl font-bold mb-6">Generate Report</h1>
+  
+    <form [formGroup]="generateReportForm" (ngSubmit)="generatePDF()">
+      <div class="mb-4">
+        <label for="partyId" class="block text-sm font-medium text-gray-700">Party ID</label>
+        <input
+          id="partyId"
+          type="text"
+          formControlName="partyId"
+          class="w-full border rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+          [ngClass]="{'border-red-500': partyId?.invalid && partyId?.touched}"
+          placeholder="Enter Party ID"
+        />
+        @if(partyId?.invalid && partyId?.touched){        
+            <div class="text-red-500 text-sm mt-1">
+              Party ID is required and must be alphanumeric.
+            </div>
+        }
+      </div>
+  
+      <button
+        type="submit"
+        class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+        [disabled]="generateReportForm.invalid || isLoading"
+      >
+        {{ isLoading ? 'Generating...' : 'Generate PDF' }}
+      </button>
+    </form>
+  
+    @if(errorMessage){       
+        <div class="mt-4 text-red-500 text-sm">
+          {{ errorMessage }}
+        </div>
+    }
+  </div>
+  
