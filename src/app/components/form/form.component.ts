@@ -1,10 +1,10 @@
-import { NgClass, NgIf } from "@angular/common";
-import { HttpClient, HttpParams } from "@angular/common/http";
+import { NgClass, NgFor, NgIf } from "@angular/common";
+
 import { Component } from "@angular/core";
-import { ReactiveFormsModule, FormsModule, FormGroup, FormBuilder } from "@angular/forms";
-import { InvoiceReportService } from "../../services/InvoiceReport.service";
+import { ReactiveFormsModule, FormsModule, FormGroup, FormBuilder, FormArray } from "@angular/forms";
+
 import { MulipleReportsService } from "../../services/muliple-reports.service";
-import { ReportService } from "../../services/report.service";
+
 import { ModalComponent } from "../modal/modal.component";
 
 
@@ -13,20 +13,17 @@ import { ModalComponent } from "../modal/modal.component";
   selector: 'app-report-form',
   templateUrl: './form.component.html',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, ModalComponent, NgClass, NgIf]
+  imports: [ReactiveFormsModule, FormsModule, ModalComponent, NgClass, NgIf,NgFor]
 })
 export class FormComponent {
 
   reportForm: FormGroup;
-  responseMessage: string = '';
   showModal: boolean = false;
   mess: string = "";
-  isLoading: boolean = false;
-  errorMessage: string = '';
-  isLoadingCrossTab: boolean = false;
   isPasswordVisible = false;
   isLoadingReports: boolean = false;
   selectedReport: string = '';
+  userResponse: string='';
 
   constructor(private fb: FormBuilder, private multipleReportsService: MulipleReportsService) {
     this.reportForm = this.fb.group({
@@ -42,14 +39,8 @@ export class FormComponent {
         })
       }),
 
-      parameters: this.fb.group({
-
-        PARAM1: [''],
-        PARAM2: [''],
-        PARAM3: [''],
-        PARAM4: [''],
-      }),
-
+      parameters: this.fb.array([]), // Changed to FormArray
+      subReportName: [''], // Add this line
       reports: this.fb.array([
         this.fb.group({
           reportPath: ['Files/JasperTemplate/Dynamic_AWBStatus_Report.jrxml'],
@@ -57,6 +48,21 @@ export class FormComponent {
       ])
     });
   }
+
+  get parameters(): FormArray {
+    return this.reportForm.get('parameters') as FormArray;
+  }
+
+  addParameter(): void {
+    this.parameters.push(this.fb.control(''));
+  }
+
+  removeParameter(index: number): void {
+    if (this.parameters.length >= 1) {
+      this.parameters.removeAt(index);
+    }
+  }
+
   closeModal() {
     this.showModal = false;
   }
@@ -66,103 +72,155 @@ export class FormComponent {
   }
 
   generateMultipleReports() {
+
+
     const { url: dbUrl, username: dbUsername, password: dbPassword } = this.reportForm.value.dataSource.connectionDetails;
     const exportFormat = this.reportForm.value.reportConfig.exportFormat;
+    const subReportName = this.reportForm.value.subReportName
     const reportName = this.selectedReport;
+     
 
-    const parameters = {
-      PARAM1: this.reportForm.value.parameters.PARAM1,
-      PARAM2: this.reportForm.value.parameters.PARAM2,
-      PARAM3: this.reportForm.value.parameters.PARAM3,
-      PARAM4: this.reportForm.value.parameters.PARAM4,
+
+    const parameters = this.parameters.value.reduce((acc: any, param: string, index: number) => {
+      acc[`PARAM${index + 1}`] = param;
+      return acc;
+    }, {});
+
+    
+    const requestBody = {
+
+      parameters:{
+        ...parameters,
+
+      }, 
+      userResponse: this.userResponse, // This will be dynamically updated after the popup
     };
-
+    
+    
     this.isLoadingReports = true;
 
     // Call the service method to generate reports
-    this.multipleReportsService.generateMultipleReports(dbUrl, dbUsername, dbPassword, exportFormat, reportName, parameters).subscribe({
+    this.multipleReportsService.generateMultipleReports(dbUrl, dbUsername, dbPassword, exportFormat, reportName,subReportName, requestBody).subscribe({
       next: (response: any) => {
-        const contentType = response.type || response.headers?.get('Content-Type');
 
-        if (contentType) {
-          const blob = new Blob([response], { type: contentType });
-          const objectUrl = window.URL.createObjectURL(blob);
-          console.log('Report generated successfully:', response);
-          this.mess = "Successfully Generated Report";
-          this.isLoadingReports = false;
-          this.showModal = true;
-
-          if (contentType.includes('application/pdf')) {
-            // Open PDF in a new tab
-            // window.open(objectUrl, '_blank');
-            const link = document.createElement('a');
-            link.href = objectUrl;
-            link.download = 'report.pdf';  // Specify the file name
-            link.click();
-          } else if (contentType.includes('text/html')) {
-            // Open HTML in a new tab
-            // window.open(objectUrl, '_blank');
-            const link = document.createElement('a');
-            link.href = objectUrl;
-            link.download = 'report.html';  // Specify the file name
-            link.click();
-          } else if (contentType.includes('application/json')) {
-            // Parse and display JSON content
-            const reader = new FileReader();
-            reader.onload = () => {
-              console.log('JSON Response:', JSON.parse(reader.result as string));
-            };
-            reader.readAsText(blob);
-          } else if (contentType.includes('text/xml')) {
-            //Handle XML content
-            // const reader = new FileReader();
-            // reader.onload = () => {
-            //   console.log('XML Response:', reader.result);
-            // };
-            // reader.readAsText(blob);
-
-            const downloadLink = document.createElement('a');
+          const contentType = response.type;
+          //response.body.type
+          console.log(response)
+          if (contentType) {
+            const blob = new Blob([response], { type: contentType });
             const objectUrl = window.URL.createObjectURL(blob);
-
-            // Set the download link attributes
-            downloadLink.href = objectUrl;
-            downloadLink.download = 'report.xml'; // Name of the XML file to be downloaded
-
-            // Append to body, trigger click to start download, then remove the link
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-
-            // // Open the XML file in the user's default viewer (text editor, browser, etc.)
-            // window.open(objectUrl, '_blank'); // Optionally open XML in browser or text editor
+            console.log('Report generated successfully:', response);
+            this.mess = "Successfully Generated Report";
+            this.isLoadingReports = false;
+            this.showModal = true;
+  
+            if (contentType.includes('application/pdf')) {
+              // Open PDF in a new tab
+              // window.open(objectUrl, '_blank');
+              const link = document.createElement('a');
+              link.href = objectUrl;
+              link.download = 'report.pdf';  // Specify the file name
+              link.click();
+            } else if (contentType.includes('text/html')) {
+              // Open HTML in a new tab
+              window.open(objectUrl, '_blank');
+              // const link = document.createElement('a');
+              // link.href = objectUrl;
+              // link.download = 'report.html';  // Specify the file name
+              // link.click();
+            } else if (contentType.includes('application/json')) {
+              // Parse and display JSON content
+              const reader = new FileReader();
+              reader.onload = () => {
+                console.log('JSON Response:', JSON.parse(reader.result as string));
+              };
+              reader.readAsText(blob);
+            } else if (contentType.includes('text/xml')) {
+              //Handle XML content
+              // const reader = new FileReader();
+              // reader.onload = () => {
+              //   console.log('XML Response:', reader.result);
+              // };
+              // reader.readAsText(blob);
+  
+              const downloadLink = document.createElement('a');
+              const objectUrl = window.URL.createObjectURL(blob);
+  
+              // Set the download link attributes
+              downloadLink.href = objectUrl;
+              downloadLink.download = 'report.xml'; // Name of the XML file to be downloaded
+  
+              // Append to body, trigger click to start download, then remove the link
+              document.body.appendChild(downloadLink);
+              downloadLink.click();
+              document.body.removeChild(downloadLink);
+  
+              // // Open the XML file in the user's default viewer (text editor, browser, etc.)
+              // window.open(objectUrl, '_blank'); // Optionally open XML in browser or text editor
+            } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+              // Handle Excel (.xlsx) format
+              const link = document.createElement('a');
+              link.href = objectUrl;
+              link.download = 'report.xlsx'; // Specify the file name
+              link.click();
+            } else {
+              console.warn('Unhandled content type:', contentType);
+              window.open(objectUrl, '_blank'); // Default fallback
+            }
           } else {
-            console.warn('Unhandled content type:', contentType);
-            window.open(objectUrl, '_blank'); // Default fallback
+            console.warn('No content type found in response');
           }
-        } else {
-          console.warn('No content type found in response');
-        }
-
-        // Reset the form after successful report generation
-        //  this.resetForm();
+        
       },
       error: (error) => {
-        console.error('Error generating report:', error);
-        this.mess = "Failed to Generate Report";
-        this.isLoadingReports = false;
-        this.showModal = true;
+        // console.log("Error",error)
+        console.error(error);
 
-        // Optionally reset the form on error
-        //  this.resetForm();
+        this.isLoadingReports = false;
+
+        // Map specific errors to user-friendly messages
+        const errorCode = error.status;
+        let errorMessage = 'Failed to generate Report!';
+
+        switch (errorCode) {
+          case 400:
+            errorMessage = 'Bad Request';
+            break;
+          case 401:
+            errorMessage = 'Invalid Credentials';
+            break;
+          case 404:
+            errorMessage = 'Not Found';
+            break;
+          case 500:
+            errorMessage = 'Internal server error ! Please retry again';
+            break;
+        }
+
+        this.mess = errorMessage;
+        this.showModal = true;
       }
     });
 
   }
 
-  // resetForm() {
-  //   this.reportForm.reset(); // Reset the form values
-  //   this.selectedReport = ''; // Clear selected report if needed
-  // }
+  resetFormParameters() {
+    // this.reportForm.reset(); // Reset the form values
+    // this.selectedReport = ''; // Clear selected report if needed
+    this.reportForm.get("parameters")?.reset();
+    // this.selectedReport = ''; 
+  }
+
+  onReportChange(newReport: string) {
+    this.selectedReport = newReport;
+    this.resetFormParameters(); // Reset form fields when report type changes
+  }
+
+  handleModalResponse(response: string): void {
+    this.userResponse = response; // Update the userResponse field with 'yes' or 'no'
+    console.log('User Response:', this.userResponse);
+    this.showModal = false; // Close the modal
+  }
 
 
 

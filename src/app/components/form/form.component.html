@@ -12,9 +12,14 @@
             <option value="pdf">PDF</option>
             <option value="viewer">Viewer</option>
             <option value="html">HTML</option>
+            <option value="xlsx">XLSX</option>
           </select>
         </div>
- 
+        <!-- <div class="p-2">
+          <label for="subReportName" class="block text-sm font-medium text-gray-700">Subreport Name</label>
+          <input id="subReportName" formControlName="subReportName" type="text" placeholder="Enter Sub-report name"
+            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+        </div> -->
       </div>
     </div>
  
@@ -54,78 +59,80 @@
  
     <!-- Parameters Section -->
  
-    <div formGroupName="parameters">
+    <div>
       <h3 class="text-xl font-semibold mb-4 border-b pb-2">Select Report Type</h3>
- 
       <!-- Radio buttons to select report -->
-      <div class="mb-4">
+      <div class="mb-4 mt-1">
         <label class="inline-flex items-center">
           <input type="radio" name="report" value="InvReport" [(ngModel)]="selectedReport"
-            class="form-radio h-5 w-5 text-blue-500" [ngModelOptions]="{standalone : true}" />
+            class="form-radio h-5 w-5 text-blue-500" [ngModelOptions]="{standalone : true}"  (ngModelChange)="onReportChange($event)" />
           <span class="ml-2 text-sm font-medium text-gray-700">Invoice</span>
         </label>
         <label class="inline-flex items-center ml-4">
           <input type="radio" name="report" value="crosstab" [(ngModel)]="selectedReport"
-            class="form-radio h-5 w-5 text-blue-500" [ngModelOptions]="{standalone : true}" />
+            class="form-radio h-5 w-5 text-blue-500" [ngModelOptions]="{standalone : true}" 
+            (ngModelChange)="onReportChange($event)"/>
           <span class="ml-2 text-sm font-medium text-gray-700">Crosstab</span>
         </label>
-        <!-- <label class="inline-flex items-center ml-4">
-          <input type="radio" name="report" value="report" [(ngModel)]="selectedReport"
-            class="form-radio h-5 w-5 text-blue-500" [ngModelOptions]="{standalone : true}"/>
-          <span class="ml-2 text-sm font-medium text-gray-700">Report</span>
-        </label> -->
       </div>
+      
+ 
+      
  
       <!-- Parameter fields based on selected report -->
-      <div *ngIf="selectedReport === 'InvReport'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Parameter 1 -->
-        <div class="p-2">
-          <label for="PARAM1" class="block text-sm font-medium text-gray-700">Parameter 1</label>
-          <input id="PARAM1" formControlName="PARAM1" type="text"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
-        </div>
- 
-        <!-- Parameter 2 -->
-        <div class="p-2">
-          <label for="PARAM2" class="block text-sm font-medium text-gray-700">Parameter 2</label>
-          <input id="PARAM2" formControlName="PARAM2" type="text"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
-        </div>
- 
-        <!-- Parameter 3 -->
-        <div class="p-2">
-          <label for="PARAM3" class="block text-sm font-medium text-gray-700">Parameter 3</label>
-          <input id="PARAM3" formControlName="PARAM3" type="text"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
-        </div>
- 
-        <!-- Parameter 4 -->
-        <div class="p-2">
-          <label for="PARAM4" class="block text-sm font-medium text-gray-700">Parameter 4</label>
-          <input id="PARAM4" formControlName="PARAM4" type="text"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
-        </div>
- 
+      <div *ngIf="selectedReport === 'InvReport'"  class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         <div>
-          <button type="button" (click)="generateMultipleReports()"
-            class="px-6 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mx-4 my-2"
-            [disabled]="reportForm.invalid || isLoading">
-            {{ isLoadingReports ? 'Generating...' : 'Submit' }}
-          </button>
+
+          <div class="p-2">
+            <label for="subReportName" class="block text-sm font-medium text-gray-700">Subreport Name</label>
+            <input id="subReportName" formControlName="subReportName" type="text" placeholder="Enter Sub-report name"
+              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+          </div>
+  
+          <div formArrayName="parameters">
+            <h3 class="text-xl font-semibold mb-4 border-b pb-2">Parameters</h3>
+            <div *ngFor="let parameter of parameters.controls; let i = index" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="p-2 flex items-center">
+                <input [formControlName]="i" type="text" placeholder="Enter parameter"
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+                <button type="button" (click)="removeParameter(i)"
+                  class="ml-2 px-3 py-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600">
+                  <i class="fa fa-minus"></i>
+                </button>
+              </div>
+            </div>
         </div>
+
+
+          <div class="flex items-center">
+            
+            <button type="button" (click)="addParameter()"
+              class="mt-2 px-6 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600">
+              <i class="fa fa-plus"></i> Add Parameter
+            </button>
+            
+              <button type="button" (click)="generateMultipleReports()"
+                class="mt-2 px-6 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ml-2"
+                [disabled]="reportForm.invalid || isLoadingReports">
+                {{ isLoadingReports ? 'Generating...' : 'Submit' }}
+              </button>
+          </div>
+        </div>
+    
  
       </div>
  
       <!-- Parameter fields for Report 2 -->
       <div *ngIf="selectedReport === 'crosstab'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Parameter 1 -->
-        <div class="p-2">
+        
+        <!-- <div class="p-2">
           <label for="PARAM1" class="block text-sm font-medium text-gray-700">Parameter 1</label>
           <input id="PARAM1" formControlName="PARAM1" type="text"
             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
         </div>
  
-        <!-- Parameter 2 -->
+       
         <div class="p-2">
           <label for="PARAM2" class="block text-sm font-medium text-gray-700">Parameter 2</label>
           <input id="PARAM2" formControlName="PARAM2" type="text"
@@ -139,28 +146,42 @@
             {{ isLoadingReports ? 'Generating Reports...' : 'Submit' }}
           </button>
  
+        </div> -->
+
+        <div formArrayName="parameters">
+          <h3 class="text-xl font-semibold mb-4 border-b pb-2">Parameters</h3>
+          <div *ngFor="let parameter of parameters.controls; let i = index" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-2 flex items-center">
+              <input [formControlName]="i" type="text" placeholder="Enter parameter"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
+              <button type="button" (click)="removeParameter(i)"
+                class="ml-2 px-3 py-2 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600">
+                <i class="fa fa-minus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center">
+            
+            <button type="button" (click)="addParameter()"
+              class="mt-2 px-6 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600">
+              <i class="fa fa-plus"></i> Add Parameter
+            </button>
+            
+              <button type="button" (click)="generateMultipleReports()"
+                class="mt-2 px-6 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ml-2"
+                [disabled]="reportForm.invalid || isLoadingReports">
+                {{ isLoadingReports ? 'Generating...' : 'Submit' }}
+              </button>
+          </div>
         </div>
  
  
       </div>
  
-      <!-- Parameter fields for Report 3 -->
-      <!-- <div *ngIf="selectedReport === 'report'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-       
-        <div class="p-2">
-          <label for="Param1" class="block text-sm font-medium text-gray-700">Parameter 1</label>
-          <input id="Param1" formControlName="Param1" type="text"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" />
-        </div>
- 
-        <button type="button" (click)="onSubmit()"
-        class="px-6 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        Generate Report
-      </button>
-      </div> -->
     </div>
   </form>
   @if(showModal){
-  <app-modal [message]="mess" (close)="closeModal()"></app-modal>
+  <app-modal [message]="mess" (close)="handleModalResponse($event)"></app-modal>
   }
 </div>
